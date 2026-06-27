@@ -1,0 +1,17 @@
+version: '3.0'
+
+services:
+  producer:
+    image: enzochang/data_ingestion:latest
+    container_name: "crawler_hahow_producer"
+    command: uv run python data_ingestion/producer_crawler_hahow_all.py
+    environment:
+      - TZ=Asia/Taipei
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    external: true

@@ -1,0 +1,21 @@
+version: '3.0'
+
+services:
+  worker:
+    image: enzochang/data_ingestion:latest
+    container_name: "crawler_hahow_worker"
+    command: uv run python -m celery -A data_ingestion.worker worker --loglevel=info --hostname=worker@%h
+    restart: always
+    environment:
+      - TZ=Asia/Taipei
+      - RABBITMQ_HOST=rabbitmq
+      - MYSQL_HOST=mysql
+      - PYTHONPATH=/app
+    networks:
+      - my_network
+    volumes:
+      - ./output:/app/output
+
+networks:
+  my_network:
+    external: true

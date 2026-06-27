@@ -1,0 +1,75 @@
+# 整合版 B：本地 build（老師 Mac 用 / DockerHub image 有問題時備用）
+# docker compose -f docker-compose-local.yml up -d
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "worker"
+      RABBITMQ_DEFAULT_PASS: "worker"
+
+  flower:
+    image: mher/flower:latest
+    container_name: flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      - rabbitmq
+    command: ["celery", "--broker=amqp://worker:worker@rabbitmq:5672//", "flower", "--port=5555"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: hahow
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+    restart: always
+    volumes:
+      - mysql:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "8000:80"
+    environment:
+      PMA_HOST: mysql
+    depends_on:
+      - mysql
+
+  worker:
+    build: .
+    container_name: crawler_hahow_worker
+    command: uv run python -m celery -A data_ingestion.worker worker --loglevel=info --hostname=worker@%h
+    restart: always
+    environment:
+      - TZ=Asia/Taipei
+      - RABBITMQ_HOST=rabbitmq
+      - MYSQL_HOST=mysql
+      - PYTHONPATH=/app
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./output:/app/output
+
+  producer:
+    build: .
+    container_name: crawler_hahow_producer
+    command: uv run python data_ingestion/producer_crawler_hahow_all.py
+    environment:
+      - TZ=Asia/Taipei
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app
+    depends_on:
+      - rabbitmq
+
+volumes:
+  mysql:
