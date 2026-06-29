@@ -1,4 +1,4 @@
-# de-project
+# hahow-crawler-de-course-materials
 2025 Data Engineering Course Project
 
 ## 🏗️ 專案架構概述
